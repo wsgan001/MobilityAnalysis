@@ -1,0 +1,246 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset=utf-8 />
+  <title>pvis – Visualization of GeoJSON geometries</title>
+  <meta name='viewport' content='initial-scale=1,maximum-scale=1,user-scalable=no' />
+
+  <script src='https://api.tiles.mapbox.com/mapbox.js/v2.1.5/mapbox.js'></script>
+  <script type="text/javascript" src='js/chroma.min.js'></script>
+  <script type="text/javascript" src="js/leaflet.ajax.min.js"></script>
+
+  <link href='https://api.tiles.mapbox.com/mapbox.js/v2.1.5/mapbox.css' rel='stylesheet' />
+  <style>
+  body {
+    margin: 0;
+    padding: 0;
+  }
+  #map {
+    position: absolute;
+    top: 0;
+    bottom: 0;
+    width: 100%;
+  }
+  .info {
+    width: 160px;
+    padding: 7px 8px;
+    font: 14px/16px Helvetica, Arial, sans-serif;
+    background: white;
+    background: rgba(255,255,255,0.9);
+    box-shadow: 0 0 15px rgba(0,0,0,0.2);
+    border-radius: 3px;
+  }
+  .info h4 {
+    margin: 0 0 5px;
+    color: #555;
+  }
+  .mapbox-logo-true {
+    display: none;
+  }
+  .coord-pop {
+    font-size: 8pt;
+    color: #aaa;
+  }
+  .leaflet-popup-content {
+    padding-bottom: 10px;
+    text-align: center;
+  }
+  </style>
+</head>
+<body>
+
+  <div id='map'></div>
+
+<script type="text/javascript" src="js/auth.js"></script>
+<script>
+  // TODO: make a range of the timestamp domain and add a slider that filters the output.
+  // TODO: add a layer that shows rendezvous
+
+  // MAP SETUP -----------------------------------------------------------------
+
+  // 'js/auth.js' contains your personal access token and tile ID of a
+  // mapbox.com tile, e.g. auth = {'accessToken': ... , 'tileID': ...}
+
+  L.mapbox.accessToken = auth.accessToken;
+  var map = L.mapbox.map('map', auth.tileID).setView([37.78,-122.42], 11);
+  var twitterLayer, twitterPointLayer;
+  var info = L.control(); // info menu
+
+  // HELPER FUNCTIONS & CALLBACKS ----------------------------------------------
+
+  function color(i) {
+    var nfeat = twitterLayer.getLayers().length;
+    var scale = chroma.scale("Set1").domain([0, nfeat]);
+    // var scale = chroma.scale(['midnightblue', 'deeppink', 'red']).correctLightness(true).domain([0, nfeat]);
+    // var bezier = chroma.interpolate.bezier(scale);
+    return scale(i).hex()
+  }
+
+  function style(feature) {
+    return {
+      weight: 1.5,
+      opacity: 0.6,
+      color: color(feature.properties.number),
+    };
+  }
+
+  function pointStyle(feature) {
+    return {
+      color: color(feature.properties.number)
+    };
+  }
+
+  function onDataLoaded(e) {
+    // map.fitBounds(twitterLayer.getBounds());
+    if (e.target.options.geomType == "lines") {
+      twitterLayer.setStyle(style);
+
+      twitterLayer.eachLayer(function(userlayer) {
+        userlayer.bindPopup('ID: ' + userlayer.feature.properties.id, {
+          closeButton: false
+        });
+      });
+    } else {
+      twitterPointLayer.eachLayer(function(userlayer) {
+        userlayer.bindPopup('ID: ' + userlayer.feature.properties.id, {
+          closeButton: false
+        });
+      });
+    }
+  }
+
+  function highlightFeature(e) {
+    var layer = e.target;
+    var geomType = layer.feature.geometry.type;
+
+    if (geomType == "LineString") {
+      layer.setStyle({
+        weight: 3,
+        opacity: 0.8
+      });
+    } else {
+      e.layer.setRadius(8);
+    }
+
+    if (!L.Browser.ie) {
+      layer.bringToFront();
+    }
+
+    info.update(layer.feature.properties);
+  }
+
+  function resetHighlight(e) {
+    var layer = e.target;
+    var geomType = layer.feature.geometry.type;
+
+    if (geomType == "LineString") {
+      layer.setStyle({
+        weight: 1.5,
+        opacity: 0.6,
+      });
+    } else {
+      e.layer.setRadius(2);
+    }
+
+    info.update();
+  }
+
+  function onEachFeature(feature, layer) {
+    layer.on({
+      mouseover: highlightFeature,
+      mouseout: resetHighlight,
+    });
+  }
+
+  function pointToLayer(feature, latlng) {
+    return new L.CircleMarker(latlng, {radius: 2, fillOpacity: 0.6});
+  }
+
+  // LAYERS --------------------------------------------------------------------
+
+  twitterLayer = new L.GeoJSON.AJAX("data/data.geojson", {
+    onEachFeature: onEachFeature,
+    geomType: "lines"
+  })
+  .on('data:loaded', onDataLoaded)
+  .addTo(map);
+
+  twitterPointLayer = new L.GeoJSON.AJAX("data/data-pts.geojson", {
+    style: pointStyle,
+    onEachFeature: onEachFeature,
+    pointToLayer: pointToLayer,
+    geomType: "points"
+  })
+  .on('data:loaded', onDataLoaded)
+  .addTo(map);
+
+  var mediansLayer = new L.GeoJSON.AJAX("data/medians.geojson", {
+    // style: pointStyle,
+    pointToLayer: function(feature, latlng) {
+      return new L.CircleMarker(latlng, {
+        radius: 10,
+        color: color(feature.properties.number),
+        opacity: 0.8,
+        fillColor: 'black',
+        fillOpacity: 0.5});
+    }
+  })
+  .addTo(map);
+
+  // INFO ----------------------------------------------------------------------
+
+  info.onAdd = function(map) {
+    this._div = L.DomUtil.create('div', 'info'); // create a div with a class "info"
+    this.update();
+    return this._div;
+  };
+
+  info.update = function(props) {
+    this._div.innerHTML = '<h4>USER ID</h4>' + (props ? props.id : '<em>Hover over a path</em>');
+  };
+
+  info.addTo(map);
+
+  var info2 = L.control({position: 'bottomright'});
+  var infodiv;
+  var lastClick;
+
+  info2.onAdd = function(map) {
+    infodiv = L.DomUtil.create('div', 'info info2');
+    var c = map.getCenter();
+    infodiv.innerHTML = c.lat.toFixed(5) + "<br>" + c.lng.toFixed(5);
+    lastClick = infodiv.innerHTML;
+    return infodiv;
+  };
+
+  map.on('mousemove', function(e) {
+    infodiv.innerHTML = e.latlng.lat.toFixed(5) + "<br>" + e.latlng.lng.toFixed(5);
+  });
+
+  info2.addTo(map);
+
+  map.on('click', function(e){
+    lastClick = e.latlng.lat.toFixed(5) + "<br>" + e.latlng.lng.toFixed(5);
+  });
+
+  map.on('mouseout', function(e){
+    infodiv.innerHTML = lastClick;
+  });
+
+  var lastPopupContent;
+  var popupLocation = "";
+
+  map.on('popupopen', function(e){
+    lastPopupContent = e.popup.getContent();
+    e.popup.setContent(e.popup.getContent() + "<br><div class='coord-pop'>"
+      + e.popup._latlng.lat.toFixed(3) + ", "
+      + e.popup._latlng.lng.toFixed(3) + "</div>");
+  });
+
+  map.on('popupclose', function(e){
+    e.popup.setContent(lastPopupContent);
+  });
+
+</script>
+</body>
+</html>
