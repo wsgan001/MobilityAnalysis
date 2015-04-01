@@ -6,7 +6,7 @@ The project consists of two parts:
 
 `pvis` – a JavaScript module for in-browser data visualization via Leaflet and Mapbox.
 
-The following is an overview of the modules' features. For thorough details please refer to the ~~documentation~~.
+The following is an overview of the modules' features.
 
 ### Dependencies
 
@@ -37,7 +37,7 @@ df = build_df(f)
 
 To write a GeoJSON file (for visualization purposes) call the method `write_geojson` on a DataFrame.
 
-You can also use the command line interface for commodity. Run *psense/io_csv.py* directly to show valid arguments.
+You can also use the command line interface for convenience. Run *psense/io_csv.py* directly to show valid options.
 
 ```bash
 > python psense/io_csv.py
