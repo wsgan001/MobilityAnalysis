@@ -42,9 +42,10 @@ def build_df(csv_files):
     Returns a sorted pandas.DataFrame object made up of all csv objects
     together.
 
-    Expects a list if CSV paths with at least 'user_id', 'lat' and 'lng' entries.
+    Expects a list if CSV paths with at least 'user_id', 'lat', 'lng' and 'created_at' entries.
     """
     df_list = []
+    csv_files = [csv_files] if isinstance(csv_files, str) else csv_files
 
     print "Processing..."
     for filepath in csv_files:

@@ -1,106 +1,74 @@
-# ESTAData
-Source code and documentation of the ESTAData Project. 
-For more detailed information check the documentation provided in the **doc** folder.
+# MobilityAnalysis
 
-Reference: 
+The project consists of two parts:
 
-Budde, Matthias, et al. "Leveraging spatio-temporal clustering for participatory urban infrastructure monitoring." Proceedings of the First International Conference on IoT in Urban Space. ICST (Institute for Computer Sciences, Social-Informatics and Telecommunications Engineering), 2014.
+`psense` – a Python module for data analysis in mobile networks.
 
-##Data Format & Loading
-In order to successfully load the information from the csv/json files, they need
-to provide certain information. Otherwise, the load functionality ends in fail-
-ure. This is avoided if the data files contain the following columns with their
-respective values:
+`pvis` – a JavaScript module for in-browser data visualization via Leaflet and Mapbox.
 
-• ’lng’ for longitude (a double precision floating point number).
+The following is an overview of the modules' features. For thorough details please refer to the documentation.
 
-• ’lat’ for latitude (a double precision floating point number).
+### Dependencies
 
-• ’created at’ for the creation time of the report. For .csv files, the date
-formatting should be ’yyyy-MM-dd HH:mm:ss’, for .json files: ’yyyy-MM-
-dd’T’HH:mm:ss’ (a string).
+- pandas
+- geopy
+- ~~igraph~~
 
-• ’summary’ for the category of the report (a string).
+## Input/Output
 
-• ’description’ for the user’s description of the report (a string).
+JSON and CSV are the currently supported input-file types.
 
-• for the report’s URL address, ’bitly’ in case of .csv files, ’html url’ in case
-of .json files (a string).
+We assume *at least* the following entries are specified in the input data:
 
-• ’id’ for the report’s ID (an integer).
+- `user_id`: The ID of the user corresponding to the entry.
+- `lat`: The latitude of the geographical point in degrees.
+- `lng`: The longitude of the geographical point in degrees.
+- `created_at`: The timestamp (date and time) the entry was created at.
 
-• in case of .json files, ’reporter’ for the ID of the reporter (an integer).
+Utility methods for input and output are found in `psense.io_csv` and `psense.io_json`
 
-To load data into Terracotta, execute:
+For instance, to read in a bunch of CSV files you would do:
 
-*$ java [JVM args] -jar mining.jar --config CONFIG FILE --reportscache CACHE --load PATH --type [json|csv] --ratio R*
+```python
+from psense.io_csv import *
+f = choose_files("local/data/path", filenumber=100)
+df = build_df(f)
+```
 
-The JVM arguments tend to have a big impact in the performance of the framework. 
-Especially, when loading big datasets, the JVM should have access to as much memory as possible. This is done using the 
-flag -Xmx (e.g. -Xmx8G will allow the JVM heap to use up to 8G of memory).
-Regarding the program arguments:
+To write a GeoJSON file (for visualization purposes) call the method `write_geojson` on a DataFrame.
 
-• CONFIG FILE is the path to the Terracotta configuration file,
+You can also use the command line interface for commodity. Run *psense/io_csv.py* directly to show valid arguments.
 
-• CACHE is the name of the Terracotta cache where the reports should be stored in,
+```bash
+psense/io_csv.py
+```
 
-• PATH is the path to a directory or single file containing the data (must be json or csv),
+## Generating grids
 
-• and the ratio R is a parameter in range [0,1] signalizing which percentage
-of the data should be loaded. Its default value is 1.0, and if minor to one,
-the selected data is random (i.e. two executions using the same ratio could
-result in different sets of data being loaded).
+Grids offer another, more efficient way of defining *rendezvous* in participatory sensing settings.
 
-##Graph Generation
-*$ java [JVM args] -jar mining.jar [config+cache] --mode filter -m M -d D*
+### Two-dimensional grids
 
-As when loading data into Terracotta, it is important to provide the JVM 
-with as much heap memory (flag -Xmx) as well as with off-heap memory (flag
--XX:MaxDirectMemorySize). Regarding the program arguments:
+The Grid class implements the discretization of an ellipsoidal surface for *time-independent* algorithms on a set of geographical points.
 
-• config+cache: here, the configuration file of terracotta and the cache
-containing the reports needs to be provided (see 3). However, a further
-cache is also needed. In it, the clustering results are to be stored. This
-cache is provided using the flag --clusterscache.
+Use the class method `build` to build a Grid instance from a given DataFrame. You must specify the grid-size in kilometers, but the bounding box is optional:
 
-• --mode filter indicates the modality being executed. In future sections
-we shall see the alternatives.
+```python
+g = Grid.build(df, bbox=BBOX, gridsize=2.4)
+```
 
-• -m M or --meters M indicates the maximal spatial distance M in meters
-that two reports can have to be ST-connected.
+The bounding box must be of the form [W, S, E, N]. You can get the bounding box of a specific area by its name by using `psense.util.bbox_from_name`.
 
-• -d D or --days D indicates the maximal temporal distance D in days that
-two reports can have to be ST-connected.
+### Three-dimensional grids
 
-##Graph Clustering
+The TimeGrid class is an extension of the Grid class which supports operations related to time-relevant analysis. In essence, it just adds a third time dimension with a corresponding time-resolution (`tres`) parameter.
 
-*$ java [JVM args] -jar mining.jar [config+caches] --mode cluster --algorithm ALG [ARGS]*
+As before, the bounding box is not required, neither is the "temporal box". The time resolution, on the other hand, should be set in hours.
 
-Like before, the JVM arguments should assign the as much memory (on- and off-heap) 
-as possible to the program. Just as well as before, config+caches contains the 
-necessary information about the Terracotta configuration file and
-the caches containing the reports and clusters. In this scenario we need a graph to work on. 
-Therefore, the necessary caches should exist with the convention names (see full documentation).
+```python
+tg = TimeGrid.build(df, bbox=BBOX, tbox=TBOX, gridsize=2.0, tres=24):
+```
 
-Regarding the remaining arguments, --mode cluster indicates that the program must execute
-a clustering algorithm over the graph; ALG is the algorithm to be executed, 
-which can be one of the following: SCAN, louvain, louvain mlv (for Louvain with multilevel refinement) 
-or slm (for smart local moving algorithm for large-scale modularity-based community detection). 
-The last three are modularity based algorithms, and their provided implementations were taken from
-http://www.ludowaltman.nl/slm/.
-When using SCAN, ARGS consists of: --mu MU --eps EPS, which are the algorithm’s
-parameters. If not provided, MU and EPS take the default values 2 and 0.7, respectively.
-On the other hand, when using any of the modularity based algorithms, a wide set of arguments is available for the user:
+## Computing statistics
 
-• --modularity function FUNC: the modularity function to be used: standard (default) or alternative.
-
-• --resoltion RESOL: the resolution parameter (default: 1.0).
-
-• --random starts RANDS: the number of random starts executed by the algorithm, default: 10.
-
-• --iterations ITER: the number of iterations per random start, default: 10.
-
-• --random seed SEED: seed for the RNG, default: random.
-
-For more detailed information about these arguments, we refer to the aforemen-
-tioned website.
+Use the command line interface `psense/io_csv.py -s` or directly call `psense.do_stats(df)` on an existing DataFrame to compute the geometric average (centroid), geometric median, radius and locality measures for each of the users.
