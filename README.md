@@ -55,11 +55,11 @@ or pass parameters directly like so
 > python psense/io_csv.py input/CSV/directory/ -n 10 -w geojson/data.geojson -p -l
 ```
 
-This gathers the 10 newest CSV files in `input/CSV/directory/` and writes GeoJSON lines in `geojson/data.geojson` and points in `geojson/data-pts.geojson`.
+This gathers the 10 newest CSV files in `input/CSV/directory/` and writes GeoJSON lines in `geojson/data.geojson` and points in `geojson/data-pts.geojson`. The `-p` (`-l`) flag changes the geometry type to MultiPoint (LineString). When used together, a LineString is written to the output path, as well as a separate MultiPoint suffixed with "-pts". Without such flags a LineString type is assumed.
 
 To print out geometric statistics you run (for instance)
 
-```sh
+```bash
 > python psense/io_csv.py input/CSV/directory/ -n 3 -s
 Processing...
 Loading file "163201665_tweets.csv"
