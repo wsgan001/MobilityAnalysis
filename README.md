@@ -100,6 +100,6 @@ As before, the bounding box is not required, neither is the "temporal box". The 
 tg = TimeGrid.build(df, bbox=BBOX, tbox=TBOX, gridsize=2.0, tres=24)
 ```
 
-## Computing statistics
+## Computing geometry statistics
 
-Use the command line interface `psense/io_csv.py -s` or directly call `psense.do_stats(df)` on an existing DataFrame to compute the geometric average (centroid), geometric median, radius and locality measures for each of the users.
+Use the command line interface `psense/io_csv.py input/CSV/directory/ -s` or directly call `psense.do_stats(df)` on an existing DataFrame to compute the geometric average (centroid), geometric median, radius and locality measures for each of the users.
