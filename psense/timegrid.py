@@ -58,7 +58,8 @@ def get_rendezvous_users(g, uid):
 
 def get_spatial_rendezvous_users(g, uid):
     """
-    Get the users with which the user `uid` shares a spatial cell (time-independently).
+    Get the users with which the user `uid` shares a spatial cell
+    (time-independently).
     """
     if isinstance(g, TimeGrid):
         g = g.projection
@@ -82,10 +83,10 @@ def measure_rendezvous(g, uid):
         a cell coincidence with another user.
 
     Runtime:
-        O(M * N), M is the maximum number entries per user and N is the length
-        of the data. If the gridsize is such that there is a 1/n chance to find
-        a non-empty cell (or a 'dense' cell), then we get an average time of
-        O(M).
+        O(M * N), where M is the maximum number entries per user and N is the
+        length of the data. If the gridsize is such that there is a 1/n chance
+        to find a non-empty cell (or a 'dense' cell), then we get an average
+        time of O(M).
     """
     return len(get_rendezvous(g, uid))
 
@@ -94,7 +95,12 @@ def measure_rendezvous_users(g, uid):
     Compute the number of rendezvous users of a given user.
 
     Returns:
-        The number of different users with which the user with ID `uid` shares a cell (rendezvous).
+        The number of different users with which the user with ID `uid` shares a
+        cell (rendezvous).
+
+    Runtime:
+        O(M^2 * N), M is the maximum number entries per user and N is the length
+        of the data.
     """
     return len(get_rendezvous_users(g, uid))
 
@@ -107,7 +113,8 @@ def measure_spatial_rendezvous_users(g, uid):
         (time-independently).
 
     Runtime:
-        TODO: (grid projection) + U * M * N
+        O([grid projection] + U * M * N) = O(N + (M * N)), where M is the
+        maximum number entries per user and N is the length of the data. With less cells it is more likely to find high populated cells.
 
     This approach assumes the user data reflects general movement patterns that are not time-specific.
     """
@@ -130,6 +137,9 @@ def get_central_user(g, mode="all", all=False):
         number entries per user and N is the length of the data. On average
         O(U * M), see `measure_rendezvous`.
     - [user] measure_rendezvous_users
+        O(U * M^2 * N), see `measure_rendezvous_users`.
+    - [spatial] measure_spatial_rendezvous_users
+        O(N + (U * M * N)), see `measure_spatial_rendezvous_users`.
     """
 
     # maximizing functions/measures
@@ -151,7 +161,7 @@ def get_central_user(g, mode="all", all=False):
 
     if mode == "spatial":
         if isinstance(g, TimeGrid):
-            g = g.projection # project to two-dimensional spatial field
+            g = g.projection # project to two-dimensional spatial field once
 
     m = 0
     maxuser = []
@@ -387,6 +397,7 @@ class TimeGrid(Grid):
 
     @property
     def projection(self):
+        """Reduce the dimension of the grid by one in linear time."""
         if not self.data:
             raise ValueError("Data array has not been set")
         squashed_data = self.data.squash()

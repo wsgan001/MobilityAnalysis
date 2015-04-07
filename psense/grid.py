@@ -79,7 +79,7 @@ def get_max_traffic_location(df, bbox=None, gridsize=1.0, lazy=0):
     """
     g = build_grid(df, bbox, gridsize=gridsize, lazy=lazy)
     c = get_max_traffic_cell(g)
-    return g.get_midpoint(c, lazy=lazy)
+    return g.get_cell_midpoint(c, lazy=lazy)
 
 # ------------------------------------------------------------------------------
 
@@ -217,7 +217,7 @@ class Grid(object):
     def add_cell_in_df(self, P):
         df.loc[(df.created_at == P.ts) & (df.index == P.user_id), "icell"] = self.add_point(P)
 
-    def get_midpoint(self, cell, lazy=False):
+    def get_cell_midpoint(self, cell, lazy=False):
         i, j = cell
         top = self.rows[i]
         left = self.columns[j]
