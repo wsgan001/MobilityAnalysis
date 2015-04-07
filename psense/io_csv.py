@@ -87,13 +87,13 @@ def stats_callback(option, opt_str, value, parser):
     if parser.rargs and not parser.rargs[0].startswith('-'):
         value = parser.rargs.pop(0)
     else:
-        value = True
+        value = True # interpret as True if flag is given without a path
     setattr(parser.values, option.dest, value)
 
 if __name__ == '__main__':
     from optparse import OptionParser
 
-    usage = "./%prog [options] path\n\npath -- the path of a CSV file or a directory containing such files."
+    usage = "./%prog path [options]\n\npath -- the path of a CSV file or a directory containing such files."
     parser = OptionParser(usage=usage)
     parser.add_option("-n",
         dest="nfiles",
@@ -172,7 +172,7 @@ if __name__ == '__main__':
         # build dataframe
         df = build_df(csv_files)
 
-        if options.toPoints and not options.filename:
+        if (options.toPoints or options.toLines) and not options.filename:
             parser.error("Output path not given")
 
         # output
@@ -191,10 +191,10 @@ if __name__ == '__main__':
                 outpaths.append(abspath(options.filename))
             print_success("Data written to:\n    " + "\n    ".join(outpaths))
 
-        if options.fmeans:
+        if hasattr(options, 'fmeans'):
             write_geojson_centers(df, geom_average, options.fmeans)
             print_success("Geometric means written to: " + options.fmeans)
-        if options.fmedians:
+        if hasattr(options, 'fmedians'):
             write_geojson_centers(df, geom_median, options.fmedians)
             print_success("Geometric medians written to: " + options.fmedians)
 

@@ -43,6 +43,37 @@ You can also use the command line interface for convenience. Run *psense/io_csv.
 > python psense/io_csv.py
 ```
 
+Edit psense/config.cfg conveniently to generate GeoJSON files from selected data and do (this gives you more control over the selected input files)
+
+```bash
+> python psense/io_csv.py -c psense/config.cfg
+```
+
+or pass parameters directly like so
+
+```bash
+> python psense/io_csv.py input/CSV/directory/ -n 10 -w geojson/data.geojson -p -l
+```
+
+This gathers the 10 newest CSV files in `input/CSV/directory/` and writes GeoJSON lines in `geojson/data.geojson` and points in `geojson/data-pts.geojson`.
+
+To print out geometric statistics you run (for instance)
+
+```sh
+> python psense/io_csv.py input/CSV/directory/ -n 3 -s
+Processing...
+Loading file "163201665_tweets.csv"
+Loading file "314226613_tweets.csv"
+Loading file "47487483_tweets.csv"
+
+Statistics:
+           avg_locality  med_locality   radius_avg   radius_med
+user_id
+47487483       0.000002      0.000003  5173.649905  5214.953663
+163201665      0.000032      0.000039   679.829722   688.902151
+314226613      0.000002      0.000002  3576.990507  4335.761981
+```
+
 ## Generating grids
 
 Grids offer another, more efficient way of defining *rendezvous* in participatory sensing settings.
