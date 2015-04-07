@@ -66,7 +66,7 @@ The TimeGrid class is an extension of the Grid class which supports operations r
 As before, the bounding box is not required, neither is the "temporal box". The time resolution, on the other hand, should be set in hours.
 
 ```python
-tg = TimeGrid.build(df, bbox=BBOX, tbox=TBOX, gridsize=2.0, tres=24):
+tg = TimeGrid.build(df, bbox=BBOX, tbox=TBOX, gridsize=2.0, tres=24)
 ```
 
 ## Computing statistics
