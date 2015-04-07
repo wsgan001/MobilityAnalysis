@@ -11,7 +11,7 @@ import random as rdm
 
 import pandas as pd
 
-from psense.stats import do_stats
+from psense.stats import *
 
 #-------------------------------------------------------------------------------
 
@@ -131,7 +131,9 @@ if __name__ == '__main__':
         from os import listdir
         from os.path import isfile, abspath, join, splitext
 
-        # configuration file
+        extraparams = {}
+
+        # parse configuration file
         if options.configfile:
             import ConfigParser
             from ast import literal_eval as leval
@@ -147,7 +149,11 @@ if __name__ == '__main__':
             options.toLines = getcfg('points')
             options.toPoints = getcfg('lines')
 
-            extraparams = {}
+            if config.has_option('paths', 'geojsonmeans'):
+                options.fmeans = config.get('paths', 'geojsonmeans')
+            if config.has_option('paths', 'geojsonmedians'):
+                options.fmedians = config.get('paths', 'geojsonmedians')
+
             present = set(['size', 'newest', 'random']) \
                 .intersection(config.options('params'))
             for opt in present:
@@ -167,7 +173,7 @@ if __name__ == '__main__':
         df = build_df(csv_files)
 
         if options.toPoints and not options.filename:
-            parser.error('Filename not given')
+            parser.error("Output path not given")
 
         # output
         if options.filename:
@@ -183,7 +189,14 @@ if __name__ == '__main__':
             else:
                 write_geojson(df, options.filename)
                 outpaths.append(abspath(options.filename))
-            print_success("Data written to: " + "\n".join(outpaths))
+            print_success("Data written to:\n    " + "\n    ".join(outpaths))
+
+        if options.fmeans:
+            write_geojson_centers(df, geom_average, options.fmeans)
+            print_success("Geometric means written to: " + options.fmeans)
+        if options.fmedians:
+            write_geojson_centers(df, geom_median, options.fmedians)
+            print_success("Geometric medians written to: " + options.fmedians)
 
         if options.statsfile:
             stats = do_stats(df)
